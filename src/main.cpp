@@ -26,6 +26,9 @@
 #define SPEED_OF_SOUND 330  // m/s in air
 #define SAMPLE_TIME 1.554e-6  // seconds per sample (measured)
 
+// Normalization settings
+#define NORM_DEADZONE_M 0.30  // Exclude first 0.50m from statistics (sensor ringing)
+
 // Packet structure from RP2040
 #define PACKET_SIZE (1 + 6 + 2 * NUM_SAMPLES + 1)  // header + metadata + samples + checksum
 
@@ -382,10 +385,32 @@ void drawWaterfall() {
     return;
   }
 
-  const size_t totalPixels = validColumns * WATERFALL_HEIGHT;
-  const double mean = (totalPixels > 0) ? static_cast<double>(waterfallSum) / totalPixels : 0.0;
-  const double meanSquares =
-      (totalPixels > 0) ? static_cast<double>(waterfallSumSquares) / totalPixels : 0.0;
+  // Calculate statistics excluding dead zone (sensor ringing area)
+  // Note: Y-axis is inverted - Y=0 is far (max depth), Y=240 is near (0m)
+  const float SAMPLE_RESOLUTION = (SPEED_OF_SOUND * SAMPLE_TIME * 100) / 2;  // cm per sample
+  const float MAX_DEPTH_M = (NUM_SAMPLES * SAMPLE_RESOLUTION) / 100.0;
+  const int deadzonePixels = (NORM_DEADZONE_M / MAX_DEPTH_M) * WATERFALL_HEIGHT;
+  const int deadzoneStartY = WATERFALL_HEIGHT - deadzonePixels;  // Exclude bottom (near sensor)
+
+  uint64_t validSum = 0;
+  uint64_t validSumSquares = 0;
+  size_t validPixelCount = 0;
+
+  // Recalculate statistics excluding dead zone (bottom part = near sensor)
+  for (size_t col = 0; col < validColumns; col++) {
+    size_t bufferCol = bufferFilled ? (currentColumn + col) % WATERFALL_COLUMNS : col;
+    uint8_t *columnPtr = waterfallRaw + bufferCol * WATERFALL_HEIGHT;
+
+    for (int y = 0; y < deadzoneStartY; y++) {  // Only pixels ABOVE deadzone (far from sensor)
+      uint8_t value = columnPtr[y];
+      validSum += value;
+      validSumSquares += static_cast<uint64_t>(value) * value;
+      validPixelCount++;
+    }
+  }
+
+  const double mean = (validPixelCount > 0) ? static_cast<double>(validSum) / validPixelCount : 0.0;
+  const double meanSquares = (validPixelCount > 0) ? static_cast<double>(validSumSquares) / validPixelCount : 0.0;
   double variance = meanSquares - mean * mean;
   if (variance < 0.0) {
     variance = 0.0;
