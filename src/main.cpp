@@ -4,30 +4,32 @@
 #include <esp32-hal-psram.h>
 
 // ==================== CONFIGURATION ====================
-#define SERIAL_BAUD 921600  // Match RP2040 baud rate
-#define NUM_SAMPLES 5000
-#define WATERFALL_WIDTH 320  // Full screen width
-#define WATERFALL_HEIGHT 240  // Full screen height
-#define COLUMN_WIDTH 2  // Number of pixels per measurement column
-#define WATERFALL_COLUMNS (WATERFALL_WIDTH / COLUMN_WIDTH)  // 160 measurement columns
 
-// Display dimensions (rotation 1 = landscape mode, fills entire screen)
+// Serial Communication
+#define SERIAL_BAUD 921600       // Baud rate - must match RP2040 (default: 921600)
+#define RXD2 22                  // ESP32 RX pin (GPIO22) - connects to RP2040 TX
+
+// Measurement Settings
+#define NUM_SAMPLES 5000         // Number of samples per measurement - must match RP2040
+#define SPEED_OF_SOUND 330       // Speed of sound in m/s (330=air, ~1500=water)
+#define SAMPLE_TIME 1.554e-6     // Time per sample in seconds - must match RP2040 setup
+
+// Display Settings
+#define COLUMN_WIDTH 2           // Pixels per measurement (1-4, default: 2)
+                                 // 1=320 columns (slow scroll), 2=160 columns, 4=80 columns (fast scroll)
+
+// Normalization Settings
+#define NORM_DEADZONE_M 0.30     // Exclude first X meters from auto-gain (0.3-0.7 typical)
+                                 // Prevents sensor ringing from affecting contrast
+
+// ==================== CYD CONFIGURATION ====================
+#define WATERFALL_WIDTH 320
+#define WATERFALL_HEIGHT 240
+#define WATERFALL_COLUMNS (WATERFALL_WIDTH / COLUMN_WIDTH)
 #define SCREEN_WIDTH 320
 #define SCREEN_HEIGHT 240
-
-// CYD Backlight pin
-#define TFT_BL 21  // Backlight control
-
-// Serial pins
-#define RXD2 22  // RX pin
-#define TXD2 17  // TX pin (not used)
-
-// Speed of sound (must match echo_interface.py and RP2040 setup)
-#define SPEED_OF_SOUND 330  // m/s in air
-#define SAMPLE_TIME 1.554e-6  // seconds per sample (measured)
-
-// Normalization settings
-#define NORM_DEADZONE_M 0.30  // Exclude first 0.50m from statistics (sensor ringing)
+#define TFT_BL 21
+#define TXD2 17
 
 // Packet structure from RP2040
 #define PACKET_SIZE (1 + 6 + 2 * NUM_SAMPLES + 1)  // header + metadata + samples + checksum
