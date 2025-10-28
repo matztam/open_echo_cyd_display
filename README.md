@@ -1,5 +1,5 @@
 # CYD Echo Display
-
+<img src="https://github.com/matztam/open_echo_cyd_display/blob/main/misc/img1.jpg?raw=true" />
 Ultrasonic echo waterfall display for open_echo using ESP32 CYD (Cheap Yellow Display).
 
 ## Hardware
